@@ -1,0 +1,47 @@
+services:
+  faveo-apache:
+    image: ladybird/faveo-apache-v3:8.2.1
+    container_name: ${DOMAINNAME}-apache
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./${HOST_ROOT_DIR}:/var/www/html
+      - ./storage:/var/www/storage
+      - ./apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./ssl:/etc/ssl/custom:ro
+    depends_on:
+      - faveo-mysql
+      - faveo-redis
+    restart: always
+
+  faveo-mysql:
+    image: mysql:8.0.42
+    container_name: ${DOMAINNAME}-mysql
+    volumes:
+      - db-volume:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    restart: unless-stopped
+
+  faveo-redis:
+    image: redis:7-alpine
+    container_name: ${DOMAINNAME}-redis
+    restart: unless-stopped
+
+  faveo-supervisor:
+    image: ladybird/faveo-supervisor-v3:8.2.2
+    container_name: ${DOMAINNAME}-supervisor
+    volumes:
+      - ./${HOST_ROOT_DIR}:/var/www/html
+    depends_on:
+      - faveo-mysql
+      - faveo-redis
+    restart: unless-stopped
+
+volumes:
+  db-volume:
+    name: ${DOMAINNAME}-faveoDB
